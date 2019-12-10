@@ -1,5 +1,5 @@
 from collections import defaultdict
-from math import gcd
+from math import gcd, atan, pi
 
 
 def get_asteroid_locations(data: str) -> (set, int, int):
@@ -13,14 +13,13 @@ def get_asteroid_locations(data: str) -> (set, int, int):
     return out, x + 1, y + 1
 
 
-def check_visible(visible, not_visible):
-    global x
-    for other in k:
-        if other == item or other in visible[item] or other in not_visible[item]:
+def check_visible(asteroids, asteroid,  visible, not_visible):
+    for other in asteroids:
+        if other == asteroid or other in visible[asteroid] or other in not_visible[asteroid]:
             continue
 
-        x_diff = item[0] - other[0]
-        y_diff = item[1] - other[1]
+        x_diff = asteroid[0] - other[0]
+        y_diff = asteroid[1] - other[1]
         x = gcd(x_diff, y_diff)
 
         x_diff //= x
@@ -28,15 +27,15 @@ def check_visible(visible, not_visible):
 
         can_see = True
         for i in range(1, x):
-            if (item[0] - x_diff * i, item[1] - y_diff * i) in k:
-                not_visible[item].add(other)
-                not_visible[other].add(item)
+            if (asteroid[0] - x_diff * i, asteroid[1] - y_diff * i) in asteroids:
+                not_visible[asteroid].add(other)
+                not_visible[other].add(asteroid)
                 can_see = False
                 break
 
         if can_see:
-            visible[item].add(other)
-            visible[other].add(item)
+            visible[asteroid].add(other)
+            visible[other].add(asteroid)
 
 
 if __name__ == "__main__":
@@ -45,11 +44,27 @@ if __name__ == "__main__":
         visible = defaultdict(set)
         not_visible = defaultdict(set)
         for item in list(k):
-            check_visible(visible, not_visible)
+            check_visible(k, item, visible, not_visible)
 
         temp = max(visible, key=lambda x: len(visible[x]))
 
-        for x in range(max_x):
-            pass
+        visible_to_best = visible[temp]
+        print(temp, len(visible_to_best))
 
-        print(temp, len(visible[temp]), max_x, max_y)
+        angles = dict()
+        for item in visible_to_best:
+            x_di = item[0] - temp[0]
+            y_di = temp[1] - item[1]
+            if x_di == 0:
+                angles[item] = atan(float('inf') * y_di)
+            else:
+                t = atan(abs(y_di/x_di))
+                if y_di*x_di < 0:
+                    t = -t
+
+                if x_di < 0:
+                    t -= pi
+
+                angles[item] = t
+
+        print(sorted(angles.items(), key=lambda x: x[1], reverse=True)[199])
