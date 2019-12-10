@@ -10,7 +10,9 @@ class IntcodeComputer:
         self._input_queue = deque()
         self._base = 0
 
-    def _select_parameter(self, op_code, value):
+    def _select_parameter(self, position):
+        op_code = self._program[self._pc] // (10 ** (position + 1)) % 10
+        value = self._program[self._pc + position]
         if op_code == 0:
             return self._program[value]
         if op_code == 1:
@@ -19,7 +21,9 @@ class IntcodeComputer:
             return self._program[self._base + value]
         raise ValueError("Invalid parameter mode")
 
-    def _select_position(self, op_code, value):
+    def _select_position(self, position):
+        op_code = self._program[self._pc] // (10 ** (position + 1)) % 10
+        value = self._program[self._pc + position]
         if op_code == 0:
             return value
         if op_code == 2:
@@ -31,41 +35,43 @@ class IntcodeComputer:
             self._input_queue.append(item)
         while True:
             op_code = self._program[self._pc]
-            if op_code == 99:
+            operation = op_code % 100
+            if operation == 99:
                 return None
 
-            elif op_code % 100 == 3:
-                self._program[self._select_position(op_code // 100, self._program[self._pc + 1])] = self._input_queue.popleft()
+            elif operation == 3:
+                self._program[self._select_position(1)] = self._input_queue.popleft()
                 self._pc += 2
-            elif op_code % 100 == 4:
+            elif operation == 4:
+                temp = self._select_parameter(1)
                 self._pc += 2
-                return self._select_parameter(op_code // 100, self._program[self._pc - 1])
+                return temp
 
-            elif op_code % 100 in [5, 6]:
-                comp_val = self._select_parameter(op_code // 100 % 10, self._program[self._pc + 1])
-                jump = self._select_parameter(op_code // 1000 % 10, self._program[self._pc + 2])
+            elif operation in [5, 6]:
+                comp_val = self._select_parameter(1)
+                jump = self._select_parameter(2)
                 if (comp_val and op_code & 1) or (not comp_val and op_code & 2):
                     self._pc = jump
                 else:
                     self._pc += 3
 
-            elif op_code % 100 == 9:
-                self._base += self._select_parameter(op_code // 100, self._program[self._pc + 1])
+            elif operation == 9:
+                self._base += self._select_parameter(1)
                 self._pc += 2
 
             else:
-                a = self._select_position(op_code // 10000 % 10, self._program[self._pc + 3])
+                a = self._select_position(3)
 
-                op1 = self._select_parameter(op_code // 100 % 10, self._program[self._pc + 1])
-                op2 = self._select_parameter(op_code // 1000 % 10, self._program[self._pc + 2])
+                op1 = self._select_parameter(1)
+                op2 = self._select_parameter(2)
 
-                if op_code % 100 == 1:
+                if operation == 1:
                     self._program[a] = op1 + op2
-                elif op_code % 100 == 2:
+                elif operation == 2:
                     self._program[a] = op1 * op2
-                elif op_code % 100 == 7:
+                elif operation == 7:
                     self._program[a] = int(op1 < op2)
-                elif op_code % 100 == 8:
+                elif operation == 8:
                     self._program[a] = int(op1 == op2)
                 else:
                     msg = f"i = {self._pc}"
